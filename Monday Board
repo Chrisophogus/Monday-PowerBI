@@ -1,0 +1,29 @@
+let 		
+    
+    BoardID = REPLACE,
+    #"1st_Page_Table" = GetBoard_1stPage(BoardID),
+    #"1st_Page_Table_Updated" = Table.ReplaceValue(#"1st_Page_Table",null,"NoMorePages",Replacer.ReplaceValue,{"Column1.cursor"}),
+    #"2nd_page_cursor" = #"1st_Page_Table_Updated"{0}[Column1.cursor],
+
+    #"2nd_Page_Table" = if #"2nd_page_cursor" <> "NoMorePages" then GetBoard_RemainingPages(#"2nd_page_cursor") else EmptyTable(),
+    #"2nd_Page_Table_Updated" = Table.ReplaceValue(#"2nd_Page_Table",null,"NoMorePages",Replacer.ReplaceValue,{"Column1.cursor"}),
+    #"3rd_page_cursor" = #"2nd_Page_Table_Updated"{0}[Column1.cursor],
+
+    #"3rd_Page_Table" = if #"3rd_page_cursor" <> "NoMorePages" then GetBoard_RemainingPages(#"3rd_page_cursor") else EmptyTable(),
+    #"3rd_Page_Table_Updated" = Table.ReplaceValue(#"3rd_Page_Table",null,"NoMorePages",Replacer.ReplaceValue,{"Column1.cursor"}),
+    #"4th_page_cursor" = #"3rd_Page_Table_Updated"{0}[Column1.cursor],
+
+    #"4th_Page_Table" = if #"4th_page_cursor" <> "NoMorePages" then GetBoard_RemainingPages(#"4th_page_cursor") else EmptyTable(),
+    #"4th_Page_Table_Updated" = Table.ReplaceValue(#"4th_Page_Table",null,"NoMorePages",Replacer.ReplaceValue,{"Column1.cursor"}),
+    #"5th_page_cursor" = #"4th_Page_Table_Updated"{0}[Column1.cursor],
+
+    #"5th_Page_Table" = if #"5th_page_cursor" <> "NoMorePages" then GetBoard_RemainingPages(#"5th_page_cursor") else EmptyTable(),
+    #"5th_Page_Table_Updated" = Table.ReplaceValue(#"5th_Page_Table",null,"NoMorePages",Replacer.ReplaceValue,{"Column1.cursor"}),
+    #"6th_page_cursor" = #"5th_Page_Table_Updated"{0}[Column1.cursor],
+
+    Combined_Table1 = Table.Combine({#"1st_Page_Table_Updated", #"2nd_Page_Table_Updated", #"3rd_Page_Table_Updated", #"4th_Page_Table_Updated", #"5th_Page_Table"}),
+    #"Removed Other Columns" = Table.SelectColumns(Combined_Table1,{"Column1.items.name", "Ref No.", "Worksteam"}),
+    #"Renamed Columns" = Table.RenameColumns(#"Removed Other Columns",{{"Column1.items.name", "Item"}}),
+    #"Filtered Rows" = Table.SelectRows(#"Renamed Columns", each [Item] <> null and [Item] <> "")
+in
+    #"Filtered Rows"

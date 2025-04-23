@@ -1,0 +1,36 @@
+let
+    Source = (BoardID as number) =>
+let
+    MondayQuery1 = "{""query"": ""{ boards (ids: ",
+    MondayQuery2 = Number.ToText(BoardID),
+    MondayQuery3 = ") { items {  id name column_values { title text  } } } }""}",
+    MondayFullQuery = MondayQuery1&MondayQuery2&MondayQuery3,
+    Source = Web.Contents("https://api.monday.com/", 
+        [
+            RelativePath="v2",
+            Headers=
+            [
+                #"Method"="POST", 
+                #"Content-Type"="application/json", 
+                #"Authorization"="MONDAY_API_KEY",
+                #"API-Version"="2023-10"
+            ],
+            Content=Text.ToBinary(MondayFullQuery)
+        ]
+        ),
+    #"JSON" = Json.Document(Source, REPLACE),
+    data = JSON[data],
+    boards = data[boards],
+    boards1 = boards{0},
+    items = boards1[items],
+    #"Converted to Table" = Table.FromList(items, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+    #"Expanded Column1" = Table.ExpandRecordColumn(#"Converted to Table", "Column1", {"name", "column_values"}, {"Column1.name", "Column1.column_values"}),
+    #"Expanded Column1.column_values" = Table.ExpandListColumn(#"Expanded Column1", "Column1.column_values"),
+    #"Expanded Column1.column_values1" = Table.ExpandRecordColumn(#"Expanded Column1.column_values", "Column1.column_values", {"title", "text"}, {"Column1.column_values.title", "Column1.column_values.text"}),
+    #"Changed Type" = Table.TransformColumnTypes(#"Expanded Column1.column_values1",{{"Column1.column_values.title", type text}}),
+    #"Pivoted Column" = Table.Pivot(#"Changed Type", List.Distinct(#"Changed Type"[Column1.column_values.title]), "Column1.column_values.title", "Column1.column_values.text"),
+    #"Renamed Columns" = Table.RenameColumns(#"Pivoted Column",{{"Column1.name", "Item"}})
+in
+    #"Renamed Columns"
+in
+    Source

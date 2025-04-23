@@ -1,0 +1,30 @@
+let
+    Source = (BoardID as number) =>
+let
+    MondayQuery1 = "{""query"": ""{ boards (ids: ",
+    MondayQuery2 = Number.ToText(BoardID),
+    MondayQuery3 = ") { views { type settings_str  view_specific_data_str  name  id} }}""}",
+    MondayFullQuery = MondayQuery1&MondayQuery2&MondayQuery3,
+    Source = Web.Contents("https://api.monday.com/", 
+        [
+            RelativePath="v2",
+            Headers=
+            [
+                #"Method"="POST", 
+                #"Content-Type"="application/json", 
+                #"Authorization"="MONDAY_API_KEY"
+            ],
+            Content=Text.ToBinary(MondayFullQuery)
+        ]
+        ),
+    #"JSON" = Json.Document(Source,REPLACE),
+    data = JSON[data],
+    boards = data[boards],
+    #"Converted to Table" = Table.FromList(boards, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+    #"Expanded Column1" = Table.ExpandRecordColumn(#"Converted to Table", "Column1", {"views"}, {"Column1.views"}),
+    #"Expanded Column1.views" = Table.ExpandListColumn(#"Expanded Column1", "Column1.views"),
+    #"Expanded Column1.views1" = Table.ExpandRecordColumn(#"Expanded Column1.views", "Column1.views", {"type", "settings_str", "view_specific_data_str", "name", "id"}, {"Column1.views.type", "Column1.views.settings_str", "Column1.views.view_specific_data_str", "Column1.views.name", "Column1.views.id"})
+in
+    #"Expanded Column1.views1"
+in
+    Source
